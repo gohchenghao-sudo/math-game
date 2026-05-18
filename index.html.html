@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quadratic Speed Solver</title>
+    <link rel="preconnect" href="https://googleapis.com">
+    <link href="https://googleapis.com/css2?family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #060b18;
+            --surface: #0d1525;
+            --surface2: #111d35;
+            --border: rgba(255,255,255,0.07);
+            --border-strong: rgba(255,255,255,0.14);
+            --gold: #f0c040;
+            --gold-dim: rgba(240,192,64,0.15);
+            --sky: #5bb8f5;
+            --sky-dim: rgba(91,184,245,0.12);
+            --green: #3dd68c;
+            --green-dim: rgba(61,214,140,0.12);
+            --red: #f26b6b;
+            --red-dim: rgba(242,107,107,0.12);
+            --text: #e8eef8;
+            --muted: #4e6280;
+            --muted2: #7a95b8;
+            --eq-font: 'JetBrains Mono', monospace;
+            --ui-font: 'DM Sans', sans-serif;
+            --head-font: 'Syne', sans-serif;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--ui-font);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 24px 16px 48px;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body > * { position: relative; z-index: 1; }
+
+        #topbar {
+            width: 100%;
+            max-width: 940px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        .wordmark {
+            font-family: var(--head-font);
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--gold);
+            letter-spacing: 0.04em;
+        }
+
+        .wordmark span { color: var(--muted2); font-weight: 700; }
+
+        .tb-group { display: flex; gap: 8px; }
+
+        .tb-btn {
+            background: var(--surface);
+            color: var(--muted2);
+            border: 1px solid var(--border-strong);
+            padding: 7px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: var(--ui-font);
+            font-size: 0.82rem;
+            font-weight: 500;
+            transition: color 0.15s, border-color 0.15s, background 0.15s;
+        }
+        .tb-btn:hover { color: var(--text); border-color: var(--muted); background: var(--surface2); }
+        #back-btn { display: none; }
+
+        #menu {
+            width: 100%;
+            max-width: 400px;
+            background: var(--surface);
+            border: 1px solid var(--border-strong);
+            border-radius: 20px;
+            padding: 36px 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            animation: fadeUp 0.4s ease both;
+        }
+
+        .menu-icon {
+            width: 64px; height: 64px;
+            background: var(--gold-dim);
+            border-radius: 16px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2rem;
+            margin-bottom: 20px;
+        }
+
+        .menu-title {
+            font-family: var(--head-font);
+            font-size: 1.7rem;
+            font-weight: 800;
+            color: var(--text);
+            text-align: center;
+            margin-bottom: 6px;
+        }
+
+        .menu-sub {
+            font-size: 0.85rem;
+            color: var(--muted2);
+            text-align: center;
+            margin-bottom: 28px;
+            line-height: 1.5;
+        }
+
+        .diff-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--muted);
+            margin-bottom: 10px;
+            align-self: flex-start;
+        }
+
+        .diff-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .diff-btn {
+            padding: 14px 10px;
+            border-radius: 12px;
+            border: 1px solid var(--border-strong);
+            background: var(--surface2);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            transition: transform 0.15s, border-color 0.15s;
+            font-family: var(--ui-font);
+        }
+        .diff-btn:hover { transform: translateY(-2px); }
+
+        .diff-btn .d-time {
+            font-family: var(--eq-font);
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
+
+        .diff-btn .d-name { font-size: 0.75rem; font-weight: 500; }
+
+        .d-very { border-color: rgba(91,184,245,0.25); }
+        .d-very .d-time { color: var(--sky); }
+        .d-very .d-name { color: #4a9fcc; }
+        .d-very:hover { border-color: var(--sky); }
+
+        .d-slow { border-color: rgba(61,214,140,0.25); }
+        .d-slow .d-time { color: var(--green); }
+        .d-slow .d-name { color: #29a870; }
+        .d-slow:hover { border-color: var(--green); }
+
+        .d-norm { border-color: rgba(240,192,64,0.25); }
+        .d-norm .d-time { color: var(--gold); }
+        .d-norm .d-name { color: #b8923a; }
+        .d-norm:hover { border-color: var(--gold); }
+
+        .d-fast { border-color: rgba(242,107,107,0.25); }
+        .d-fast .d-time { color: var(--red); }
+        .d-fast .d-name { color: #b84a4a; }
+        .d-fast:hover { border-color: var(--red); }
+
+        .divider { width: 100%; border: none; border-top: 1px solid var(--border); margin: 6px 0 18px; }
+
+        .custom-row { display: flex; gap: 8px; width: 100%; }
+
+        .custom-input {
+            flex: 1; background: var(--bg); border: 1px solid var(--border-strong);
+            border-radius: 10px; color: var(--text); font-family: var(--eq-font);
+            font-size: 0.95rem; padding: 10px 14px; outline: none;
+        }
+        .custom-input:focus { border-color: var(--sky); }
+
+        .custom-go {
+            padding: 10px 18px; background: var(--sky-dim); border: 1px solid rgba(91,184,245,0.3);
+            border-radius: 10px; color: var(--sky); font-family: var(--ui-font);
+            font-size: 0.9rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+        }
+        .custom-go:hover { background: rgba(91,184,245,0.22); border-color: var(--sky); }
+
+        #game { display: none; width: 100%; max-width: 940px; gap: 20px; }
+        #game.active { display: flex; align-items: flex-start; }
+
+        #game-panel { flex: 1; display: flex; flex-direction: column; }
+
+        #ui-panel {
+            width: 100%; display: flex; justify-content: space-between;
+            font-size: 1.05rem; font-weight: 600; margin-bottom: 12px;
+        }
+
+        #game-container {
+            position: relative; height: 380px; background: var(--surface);
+            border: 1px solid var(--border-strong); border-radius: 16px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+
+        #equation {
+            font-family: var(--eq-font); font-size: 2.8rem; font-weight: 700;
+            color: var(--gold); text-align: center; margin-bottom: 24px;
+        }
+
+        #timer-display {
+            font-family: var(--eq-font); font-size: 2.2rem; font-weight: 700;
+            color: var(--sky); background: var(--bg); width: 110px; height: 110px;
+            border-radius: 50%; display: flex; justify-content: center; align-items: center;
+            border: 2px solid var(--border-strong);
+        }
+
+        #bottom-right-secret {
+            position: absolute; bottom: 0; right: 0; width: 25px; height: 25px;
+            background: transparent; z-index: 10;
+        }
+
+        #controls { margin-top: 20px; display: flex; gap: 20px; justify-content: center; align-items: center; }
+
+        .input-group { display: flex; align-items: center; gap: 8px; font-size: 1.4rem; font-weight: 700; color: var(--sky); }
+
+        input.game-input {
+            font-size: 1.3rem; font-weight: 600; padding: 10px; width: 90px; text-align: center;
+            border: 1px solid var(--border-strong); background-color: var(--surface); color: var(--text);
+            border-radius: 8px; outline: none; font-family: var(--eq-font);
+        }
+        input.game-input:focus { border-color: var(--sky); }
+
+        button.game-btn {
+            font-size: 1.1rem; padding: 12px 28px; background-color: var(--sky); color: #0f172a;
+            border: none; font-weight: 700; border-radius: 8px; cursor: pointer; transition: all 0.15s;
+        }
+        button.game-btn:hover { background-color: #7dd3fc; transform: translateY(-1px); }
+
+        #hint-panel { margin-top: 20px; background-color: var(--surface); border-radius: 12px; padding: 16px; border: 1px dashed var(--border-strong); }
+        .hint-btn-group { display: flex; gap: 8px; justify-content: center; }
+
+        button.hint-btn {
+            font-size: 0.85rem; font-weight: 600; padding: 8px 14px; background-color: var(--bg);
+            color: var(--muted2); border: 1px solid var(--border-strong); border-radius: 6px; cursor: pointer;
+        }
+        button.hint-btn:hover { color: var(--text); border-color: var(--muted2); }
+
+        #hint-text { font-size: 0.95rem; color: var(--gold); margin-top: 12px; min-height: 20px; text-align: center; font-weight: 500; }
+        #message { font-size: 1.05rem; font-weight: 600; min-height: 24px; margin-top: 16px; text-align: center; }
+        .success { color: var(--green); }
+        .error { color: var(--red); }
+
+        #calculator { width: 260px; background-color: var(--surface); padding: 16px; border-radius: 16px; border: 1px solid var(--border-strong); }
+        #calc-screen {
+            width: 100%; height: 54px; background-color: var(--bg); color: var(--green); border: 1px solid var(--border-strong);
+            font-size: 1.4rem; font-family: var(--eq-font); text-align: right; padding: 12px; box-sizing: border-box; margin-bottom: 12px; border-radius: 8px;
+        }
+        .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        .calc-btn { padding: 14px 0; font-size: 1.05rem; font-weight: 600; background-color: var(--surface2); color: var(--text); border: 1px solid var(--border-strong); border-radius: 8px; cursor: pointer; }
+        .calc-btn:hover { background-color: var(--border-strong); }
+        .calc-btn.op { background-color: #2563eb; border-color: #1d4ed8; }
+        .calc-btn.op:hover { background-color: #1d4ed8; }
+        .calc-btn.clear { background-color: rgba(242,107,107,0.15); color: var(--red); border-color: rgba(242,107,107,0.3); }
+        .calc-btn.clear:hover { background-color: var(--red); color: white; }
+
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div id="topbar">
+        <div class="wordmark">QUADRATIC<span>SOLVER</span></div>
+        <div class="tb-group">
+            <button id="back-btn" class="tb-btn" onclick="showMainMenu()">⬅️ Exit to Menu</button>
+            <button class="tb-btn" onclick="toggleFullScreen()">🖥️ Fullscreen</button>
+        </div>
+    </div>
+
+    <div id="menu">
+        <div class="menu-icon">⚡</div>
+        <div class="menu-title">Infinite Solver</div>
+        <div class="menu-sub">Solve infinitely auto-generated equations. Find the numbers, then flip their signs!</div>
+        
+        <div class="diff-label">Select Timer Settings</div>
+        <div class="diff-grid">
+            <div class="diff-btn d-very" onclick="launchGame(30)">
+                <span class="d-time">30s</span><span class="d-name">Very Slow</span>
+            </div>
+            <div class="diff-btn d-slow" onclick="launchGame(15)">
+                <span class="d-time">15s</span><span class="d-name">Slow</span>
+            </div>
+            <div class="diff-btn d-norm" onclick="launchGame(10)">
+                <span class="d-time">10s</span><span class="d-name">Normal</span>
+            </div>
+            <div class="diff-btn d-fast" onclick="launchGame(5)">
+                <span class="d-time">5s</span><span class="d-name">Fast</span>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="custom-row">
+            <input type="number" id="custom-time-input" class="custom-input" placeholder="Custom duration (sec)" min="1">
+            <button class="custom-go" onclick="launchCustomGame()">Start Session</button>
+        </div>
+    </div>
+
+    <div id="game">
+        <div id="game-panel">
+            <div id="ui-panel">
+                <div>Score: <span id="score" style="color: var(--green);">0</span></div>
+                <div>Hearts: <span id="hearts" style="color: var(--red);">❤️❤️❤️</span></div>
+            </div>
+
+            <div id="game-container">
+                <div id="bottom-right-secret" onclick="triggerSecret()"></div>
+                <div id="equation">x² + 5x + 6 = 0</div>
+                <div id="timer-display">30</div>
+            </div>
+
+            <div id="controls">
+                <div class="input-group">
+                    x₁ = <input type="number" id="ans1" class="game-input" placeholder="0" autocomplete="off">
+                </div>
+                <div class="input-group">
+                    x₂ = <input type="number" id="ans2" class="game-input" placeholder="0" autocomplete="off">
+                </div>
+                <button id="submit-btn" class="game-btn" onclick="checkAnswer()">Submit</button>
+                <button id="restart-btn" class="game-btn" onclick="resetGame()" style="display: none;">Play Again</button>
+            </div>
+            
+            <div id="hint-panel">
+                <div class="hint-btn-group">
+                    <button class="hint-btn" onclick="showHint(1)">Clue 1 (×)</button>
+                    <button class="hint-btn" onclick="showHint(2)">Clue 2 (+)</button>
+                    <button class="hint-btn" onclick="showHint(3)">Factored Setup</button>
+                </div>
+                <div id="hint-text"></div>
+            </div>
+            <div id="message"></div>
+        </div>
+
+        <div id="calculator">
+            <div id="calc-screen">0</div>
+            <div class="calc-grid">
+                <button class="calc-btn clear" onclick="clearCalc()">C</button>
+                <button class="calc-btn" onclick="pressCalc('(')">(</button>
+                <button class="calc-btn" onclick="pressCalc(')')">)</button>
+                <button class="calc-btn op" onclick="pressCalc('/')">/</button>
+                
+                <button class="calc-btn" onclick="pressCalc('7')">7</button>
+                <button class="calc-btn" onclick="pressCalc('8')">8</button>
+                <button class="calc-btn" onclick="pressCalc('9')">9</button>
+                <button class="calc-btn op" onclick="pressCalc('*')">×</button>
+                
+                <button class="calc-btn" onclick="pressCalc('4')">4</button>
+                <button class="calc-btn" onclick="pressCalc('5')">5</button>
+                <button class="calc-btn" onclick="pressCalc('6')">6</button>
+                <button class="calc-btn op" onclick="pressCalc('-')">-</button>
+                
+                <button class="calc-btn" onclick="pressCalc('1')">1</button>
+                <button class="calc-btn" onclick="pressCalc('2')">2</button>
+                <button class="calc-btn" onclick="pressCalc('3')">3</button>
+                <button class="calc-btn op" onclick="pressCalc('+')">+</button>
+                
+                <button class="calc-btn" onclick="pressCalc('0')">0</button>
+                <button class="calc-btn" onclick="pressCalc('.')">.</button>
+                <button class="calc-btn" onclick="pressCalc('-')" style="font-size:12px;">+/-</button>
+                <button class="calc-btn op" onclick="calculateResult()">=</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentProblem = {};
+        let lastProblemText = ""; // History tracker to avoid duplicates back-to-row
+        let score = 0;
+        let lives = 3;
+        let timeLeft = 30;
+        let maxTime = 30;
+        let gameInterval;
+        let infiniteLives = false;
+        
+        const menuElement = document.getElementById("menu");
+        const gameElement = document.getElementById("game");
+        const backBtn = document.getElementById("back-btn");
+        const eqElement = document.getElementById("equation");
+        const timerElement = document.getElementById("timer-display");
+        const msgElement = document.getElementById("message");
+        const hintTextElement = document.getElementById("hint-text");
+        const scoreElement = document.getElementById("score");
+        const heartsElement = document.getElementById("hearts");
+        const input1 = document.getElementById("ans1");
+        const input2 = document.getElementById("ans2");
+        const submitBtn = document.getElementById("submit-btn");
+        const restartBtn = document.getElementById("restart-btn");
+        const calcScreen = document.getElementById("calc-screen");
+        const customTimeInput = document.getElementById("custom-time-input");
+
+        input1.addEventListener("keyup", function(event) { if (event.key === "Enter") checkAnswer(); });
+        input2.addEventListener("keyup", function(event) { if (event.key === "Enter") checkAnswer(); });
+
+        function launchCustomGame() {
+            let val = parseInt(customTimeInput.value);
+            if (isNaN(val) || val < 1) { alert("Enter a valid time limit."); return; }
+            launchGame(val);
+        }
+
+        function launchGame(t) {
+            maxTime = t;
+            menuElement.style.display = "none";
+            gameElement.classList.add("active");
+            backBtn.style.display = "inline-block";
+            resetGame();
+        }
+
+        function showMainMenu() {
+            clearInterval(gameInterval);
+            menuElement.style.display = "flex";
+            gameElement.classList.remove("active");
+            backBtn.style.display = "none";
+        }
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => { alert(err.message); });
+            } else { document.exitFullscreen(); }
+        }
+
+        function triggerSecret() {
+            clearInterval(gameInterval);
+            let pwd = prompt("Enter security override password:");
+            if (pwd === "help me") {
+                infiniteLives = true;
+                heartsElement.innerText = "♾️ INFINITE LIVES";
+                msgElement.className = "success";
+                msgElement.innerText = "God mode enabled!";
+            } else { alert("Access Denied."); }
+            startGameLoop();
+        }
+
+        function showHint(type) {
+            if (type === 1) hintTextElement.innerText = "Find numbers multiplying to: " + currentProblem.m;
+            else if (type === 2) hintTextElement.innerText = "Those numbers must add to: " + currentProblem.a;
+            else if (type === 3) hintTextElement.innerText = "Setup: " + currentProblem.form + " (Flip signs!)";
+            input1.focus();
+        }
+
+        // AUTO GENERATION LOGIC ENGINE
+        function generateMathProblem() {
+            let p, q, text, b, c;
+            
+            // Loop until we build a problem different from the immediate last one
+            while (true) {
+                // Generate two random root integer digits between -8 and 8 (excluding 0)
+                p = Math.floor(Math.random() * 15) - 7;
+                q = Math.floor(Math.random() * 15) - 7;
+                if (p === 0) p = 2;
+                if (q === 0) q = 3;
+
+                // Calculate coefficients based on standard expansion rules
+                // (x - p)(x - q) = x^2 - (p+q)x + pq = 0
+                b = -(p + q);
+                c = p * q;
+
+                // Formatting algebraic string signs cleanly
+                let bSign = b >= 0 ? "+ " + b : "- " + Math.abs(b);
+                let cSign = c >= 0 ? "+ " + c : "- " + Math.abs(c);
+                text = `x² ${bSign}x ${cSign} = 0`;
+
+                if (text !== lastProblemText) {
+                    break;
+                }
+            }
+
+            lastProblemText = text;
+
+            // Generate structural clues for hints
+            let clueM = c;
+            let clueA = -b;
+            let signP = p >= 0 ? "- " + p : "+ " + Math.abs(p);
+            let signQ = q >= 0 ? "- " + q : "+ " + Math.abs(q);
+            let setupForm = `(x ${signP})(x ${signQ}) = 0`;
+
+            return {
+                text: text,
+                answers: [p, q],
+                m: clueM,
+                a: clueA,
+                form: setupForm
+            };
+        }
+
+        function nextQuestion() {
+            currentProblem = generateMathProblem();
+            eqElement.innerText = currentProblem.text;
+            hintTextElement.innerText = "";
+            timeLeft = maxTime;
+            timerElement.innerText = timeLeft;
+            input1.value = ""; input2.value = "";
+            input1.focus();
+        }
+
+        function startGameLoop() {
+            clearInterval(gameInterval);
+            gameInterval = setInterval(() => {
+                timeLeft--;
+                timerElement.innerText = timeLeft;
+                if (timeLeft <= 0) loseLife("Time out! Answers: " + currentProblem.answers.join(" and "));
+            }, 1000);
+        }
+
+        function checkAnswer() {
+            if (lives <= 0 && !infiniteLives) return;
+            const a1 = parseInt(input1.value);
+            const a2 = parseInt(input2.value);
+            if (isNaN(a1) || isNaN(a2)) { msgElement.className = "error"; msgElement.innerText = "Fill in both fields!"; return; }
+
+            const correct = currentProblem.answers;
+            if ((a1 === correct[0] && a2 === correct[1]) || (a1 === correct[1] && a2 === correct[0])) {
+                score += 10; scoreElement.innerText = score;
+                msgElement.className = "success"; msgElement.innerText = "Correct! +10 Points";
+                nextQuestion();
+            } else { loseLife("Wrong answers! Try again."); }
+        }
+
+        function loseLife(txt) {
+            msgElement.className = "error"; msgElement.innerText = txt;
+            if (infiniteLives) { nextQuestion(); return; }
+            lives--;
+            if (lives <= 0) {
+                heartsElement.innerText = "💥 GAME OVER"; eqElement.innerText = "Final Score: " + score;
+                timerElement.innerText = "0"; clearInterval(gameInterval);
+                submitBtn.style.display = "none"; restartBtn.style.display = "inline-block";
+            } else { heartsElement.innerText = "❤️".repeat(lives); nextQuestion(); }
+        }
+
+        function resetGame() {
+            score = 0; lives = 3; infiniteLives = false;
+            scoreElement.innerText = score; heartsElement.innerText = "❤️❤️❤️";
+            msgElement.innerText = ""; hintTextElement.innerText = "";
+            submitBtn.style.display = "inline-block"; restartBtn.style.display = "none";
+            nextQuestion(); startGameLoop();
+        }
+
+        /* Calc */
+        let expr = "";
+        function pressCalc(v) { if (calcScreen.innerText === "0" && v !== ".") expr = v; else expr += v; calcScreen.innerText = expr; }
+        function clearCalc() { expr = ""; calcScreen.innerText = "0"; }
+        function calculateResult() { try { let res = Function('"use strict";return (' + expr + ')')(); calcScreen.innerText = res; expr = res.toString(); } catch { calcScreen.innerText = "Error"; expr = ""; } }
+
+        /* Hook */
+        Object.defineProperty(window, 'giveInfPoints', {
+            get: function() { score = Infinity; scoreElement.innerText = "Infinity"; return "Override success."; }
+        });
+    </script>
+</body>
+</html>
